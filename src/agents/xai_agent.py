@@ -2,7 +2,7 @@
 xAI (Grok) agent implementation.
 """
 from openai import OpenAI
-from typing import Dict, Any
+from typing import Dict, Any, List, Union
 from src.utils.config import Config
 
 
@@ -13,32 +13,58 @@ class XAIAgent:
         self.api_key = api_key or Config.XAI_API_KEY
         self.model_name = model_name or Config.XAI_MODEL
 
+        # Validate API key
+        if not self.api_key:
+            raise ValueError("XAI_API_KEY is not set. Please check your .env file.")
+
         self.client = OpenAI(
             api_key=self.api_key,
             base_url=Config.XAI_BASE_URL
         )
 
-    def generate(self, query: str, **kwargs) -> Dict[str, Any]:
-        """Generate response from xAI."""
-        response = self.client.chat.completions.create(
-            model=self.model_name,
-            messages=[
-                {
-                    "role": "user",
-                    "content": query
-                }
-            ],
-            temperature=kwargs.get("temperature", Config.DEFAULT_TEMPERATURE),
-            max_tokens=kwargs.get("max_tokens", Config.DEFAULT_MAX_TOKENS),
-            **{k: v for k, v in kwargs.items() if k not in ["temperature", "max_tokens"]}
-        )
+    def generate(
+        self,
+        query: Union[str, List[Dict[str, str]]],
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Generate response from xAI using OpenAI-compatible API.
 
-        return {
-            "text": response.choices[0].message.content,
-            "model": self.model_name,
-            "metadata": {
-                "usage": response.usage.model_dump() if response.usage else None,
-                "finish_reason": response.choices[0].finish_reason,
-                **kwargs
+        Args:
+            query: Either a simple string or a list of message dictionaries.
+                   - String: "What is quantum computing?"
+                   - List: [
+                       {"role": "system", "content": "You are Grok"},
+                       {"role": "user", "content": "What is quantum computing?"}
+                     ]
+            **kwargs: Additional parameters (temperature, max_tokens, etc.)
+
+        Returns:
+            Dict containing the response text, model name, and metadata
+        """
+        # Convert string to messages format if needed
+        if isinstance(query, str):
+            messages = [{"role": "user", "content": query}]
+        else:
+            messages = query
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                temperature=kwargs.get("temperature", Config.DEFAULT_TEMPERATURE),
+                max_tokens=kwargs.get("max_tokens", Config.DEFAULT_MAX_TOKENS)
+            )
+
+            return {
+                "text": response.choices[0].message.content,
+                "model": self.model_name,
+                "metadata": {
+                    "usage": response.usage.model_dump() if response.usage else None,
+                    "finish_reason": response.choices[0].finish_reason,
+                    **kwargs
+                }
             }
-        }
+        except Exception as e:
+            print(f"Error calling xAI API: {e}")
+            raise
