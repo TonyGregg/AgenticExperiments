@@ -6,13 +6,16 @@ import os
 import httpx
 from openai import OpenAI
 from dotenv import load_dotenv
+from src.utils.config import Config
+
+
 load_dotenv()
 
-GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
-google_api_key = os.getenv("GOOGLE_API_KEY")
-google_model = os.getenv("GEMINI_MODEL")
-gemini = OpenAI(base_url=GEMINI_BASE_URL, api_key=google_api_key)
-response = gemini.chat.completions.create(model=google_model, messages=[
+
+# google_model = os.getenv("GEMINI_MODEL")
+gemini = OpenAI(base_url=Config.GEMINI_BASE_URL, api_key=Config.GEMINI_API_KEY)
+
+response = gemini.chat.completions.create(model= Config.GEMINI_MODEL, messages=[
         {
             "role": "system",
             "content": "You are Grok, a highly intelligent, helpful AI assistant."

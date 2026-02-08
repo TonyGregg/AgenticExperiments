@@ -10,3 +10,18 @@ dependencies = [
     "openai>=2.17.0",
     "python-dotenv>=1.2.1",
 ]
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.5.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Add this section - tells Python where to find your package
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
