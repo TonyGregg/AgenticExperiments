@@ -17,7 +17,7 @@ def main():
 
     # Example 1: Simple string query (backward compatible)
     print("=== Example 1: Simple Query ===")
-    simple_query = "Explain quantum computing in simple terms"
+    simple_query = "What is fast API?"
 
     gemini_response = cache.cached_api_call(
         model_name=gemini.model_name,

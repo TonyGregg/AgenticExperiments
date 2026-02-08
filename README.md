@@ -53,6 +53,12 @@ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
    uv run python main.py
 ```
 
+5. **Run the application in server mode**
+
+```bash
+uv run python run_server.py
+```
+
 ## Development
 
 ### Install with dev dependencies

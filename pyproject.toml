@@ -1,15 +1,19 @@
 [project]
 name = "agenticexperiments"
 version = "0.1.0"
-description = "Add your description here"
+description = "Agentic AI experiment project"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "diskcache>=5.6.3",
+    "fastapi>=0.128.5",
     "google-generativeai>=0.8.6",
     "openai>=2.17.0",
     "python-dotenv>=1.2.1",
+    "python-multipart>=0.0.22",
+    "uvicorn[standard]>=0.40.0",
 ]
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4.0",
@@ -18,10 +22,13 @@ dev = [
     "mypy>=1.5.0",
 ]
 
+# REMOVE THIS SECTION - it's causing the error
+# [project.scripts]
+# start-api = "uvicorn src.apis.api_server:app --reload --port 8000"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-# Add this section - tells Python where to find your package
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
