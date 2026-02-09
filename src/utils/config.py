@@ -19,7 +19,7 @@ class Config:
     XAI_BASE_URL = "https://api.x.ai/v1"
 
     # Model Names
-    GEMINI_MODEL = "gemini-3-flash-preview"
+    GEMINI_MODEL = os.environ.get("GEMINI_MODEL")
     XAI_MODEL = "grok-4-1-fast-reasoning"
 
     # Cache settings
