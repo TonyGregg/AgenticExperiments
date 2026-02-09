@@ -166,11 +166,7 @@ async def compare(request: CompareRequest):
 @app.get("/cache/stats")
 async def cache_stats():
     """Get cache statistics."""
-    # You might need to add these methods to your LLMCache class
-    return {
-        "cache_size": len(cache.cache) if hasattr(cache.cache, '__len__') else "unknown",
-        "cache_directory": str(Config.CACHE_DIR)
-    }
+    return cache.get_cache_size()
 
 
 @app.delete("/cache/clear")

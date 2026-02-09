@@ -7,6 +7,9 @@ import json
 from typing import Any, Callable, Optional
 
 
+from src.utils.config import Config
+
+
 class LLMCache:
     """Cache manager for LLM API responses."""
 
@@ -48,3 +51,8 @@ class LLMCache:
     def set(self, model_name: str, query: str, response: Any, **kwargs) -> None:
         key = self._generate_key(model_name, query, **kwargs)
         self.cache.set(key, response)
+    def get_cache_size(self):
+        return {
+            "cache_size": len(self.cache) if hasattr(self.cache, '__len__') else "unknown",
+            "cache_directory": str(Config.CACHE_DIR)
+        }
