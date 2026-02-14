@@ -4,7 +4,6 @@ import os
 from dotenv import load_dotenv
 import gradio as gr
 
-# Your own modules
 from src.agents.gemini_agent import GeminiAgent
 from src.utils.cache import LLMCache
 from src.utils.config import Config
@@ -40,18 +39,19 @@ def load_resume_text():
 # -----------------------------------------------------------------------------
 resume_content = load_resume_text()
 
-# Optional: if you have a separate summary file
 summary_path = Path(__file__).parent / "summary.txt"
 if summary_path.exists():
     with open(summary_path, encoding="utf-8") as f:
         summary = f.read().strip()
 else:
-    summary = resume_content[:2000]  # fallback: truncate resume
+    print("Summary not found, using resume as fallback...")
+    summary = resume_content[:2000]
 
-# You can add LinkedIn manually or load from file/env
 linkedin = os.getenv("LINKEDIN_PROFILE", "https://linkedin.com/in/tony-gregg-example")
-
 name = "Tony Gregg"
+
+# ✅ Fix: Truncate BEFORE the f-string, no comments inside
+truncated_resume = resume_content[:8000]
 
 system_prompt = f"""You are acting as {name}. 
 You are answering questions on {name}'s website, particularly questions related to {name}'s career, background, skills and experience. 
@@ -64,7 +64,7 @@ If you don't know the answer, say so honestly — do not make things up.
 {summary}
 
 ## Full Resume Text (reference when needed):
-{resume_content[:8000]}  # truncate if very long to avoid token limits
+{truncated_resume}
 
 ## LinkedIn Profile:
 {linkedin}
@@ -74,60 +74,57 @@ Never break character. Answer in first person as if you are {name}.
 """
 
 # -----------------------------------------------------------------------------
-# 3. Initialize your agent & cache (once)
+# 3. Initialize agent & cache ONCE at startup
 # -----------------------------------------------------------------------------
 cache = LLMCache(cache_dir=str(Config.CACHE_DIR))
-agent = GeminiAgent()  # assuming this is correctly implemented
+agent = GeminiAgent()  # ✅ Only initialize once!
 
 
 # -----------------------------------------------------------------------------
-# 4. The chat function — this is what Gradio calls
+# 4. The chat function
 # -----------------------------------------------------------------------------
 def chat_with_tony(message: str, history: list):
     """
-    Gradio ChatInterface expects:
-    - message: the latest user input
-    - history: list of [user_msg, assistant_msg] pairs (older → newer)
+    In Gradio 6.x history is always:
+    [
+        {"role": "user", "content": "..."},
+        {"role": "assistant", "content": "..."},
+        ...
+    ]
     """
-    # Build the full conversation for the agent
-    # Many agents expect: system prompt + list of messages
+    # Build messages for the agent
     messages = [{"role": "system", "content": system_prompt}]
 
-    # Add history (Gradio gives [[user, assistant], [user, assistant], ...])
-    for user_msg, assistant_msg in history:
-        if user_msg:
-            messages.append({"role": "user", "content": user_msg})
-        if assistant_msg:
-            messages.append({"role": "assistant", "content": assistant_msg})
+    # In Gradio 6.x history is always dicts - no need to check format
+    for entry in history:
+        if entry.get("role") and entry.get("content"):
+            messages.append({
+                "role": entry["role"],
+                "content": entry["content"]
+            })
 
     # Add current user message
     messages.append({"role": "user", "content": message})
-    gemini = GeminiAgent()
 
-    # Call your Gemini agent (adapt this call to match your GeminiAgent API)
     try:
         response = cache.cached_api_call(
-        model_name = gemini.model_name,
-        query = messages,
-        api_function = gemini.generate
-    )  # ← replace with your actual method
-        # If your agent returns an object, extract the text, e.g.:
-        # response = agent.generate(messages).text
+            model_name=agent.model_name,
+            query=messages,
+            api_function=agent.generate,
+            use_full_context=False  # default - caches by last user message
+        )
+        return response["text"]
     except Exception as e:
-        response = f"I'm sorry, something went wrong on my end: {str(e)}"
-
-    # Return only the assistant's reply (Gradio appends it automatically)
-    return response
+        return f"I'm sorry, something went wrong: {str(e)}"
 
 
 # -----------------------------------------------------------------------------
-# 5. Launch Gradio Chat Interface
+# 5. Launch Gradio
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
     print("Starting Tony Gregg's personal website chatbot...")
-    print("Resume loaded successfully." if resume_content else "Warning: no resume content loaded.")
+    print("Resume loaded successfully." if resume_content else "Warning: no resume content.")
 
-    # The simplest & cleanest way — gr.ChatInterface
     demo = gr.ChatInterface(
         fn=chat_with_tony,
         title="Chat with Tony Gregg",
@@ -140,18 +137,13 @@ if __name__ == "__main__":
             "What kind of projects have you worked on recently?",
             "Are you open to new opportunities in 2025?",
         ],
-        cache_examples=False,  # can keep this
-        # Remove these lines:
-        # retry_btn="Retry",
-        # undo_btn="Undo",
-        # clear_btn="Clear Chat",
-        # You can still customize submit & stop if desired:
-        submit_btn="Send",  # optional: str, bool, or None
-        stop_btn="Stop",  # optional: shown during generation/streaming
+        cache_examples=False,
+        submit_btn="Send",
+        stop_btn="Stop",
     )
 
     demo.launch(
-        server_name="localhost",  # optional — makes it accessible on LAN
+        server_name="localhost",
         server_port=7860,
-        share=False,  # set True for public temporary link (good for testing)
+        share=False,
     )
