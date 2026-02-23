@@ -2,8 +2,9 @@
 Gemini AI agent implementation.
 """
 from openai import OpenAI
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List, Union, Type, Optional
 from src.utils.config import Config
+from pydantic import BaseModel
 
 
 class GeminiAgent:
@@ -70,4 +71,40 @@ class GeminiAgent:
             }
         except Exception as e:
             print(f"Error calling Gemini API: {e}")
+            raise
+
+    def generate_structured(
+            self,
+            query: Union[str, List[Dict[str, str]]],
+            response_format: Type[BaseModel],
+            **kwargs
+    ) -> BaseModel:
+        """
+        Generate a structured response matching the Pydantic model.
+        Works with OpenAI SDK 1.x using json_schema response format.
+        """
+        messages = [{"role": "user", "content": query}] if isinstance(query, str) else query
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": response_format.__name__,
+                        "schema": response_format.model_json_schema()
+                    }
+                },
+                temperature=kwargs.get("temperature", Config.DEFAULT_TEMPERATURE),
+                max_tokens=kwargs.get("max_tokens", Config.DEFAULT_MAX_TOKENS)
+            )
+
+            raw_text = response.choices[0].message.content
+            print(f"Response: {raw_text}")
+            return response_format.parse_raw(raw_text)
+            return response_format.model_validate_json(raw_text)
+
+        except Exception as e:
+            print(f"Error calling Gemini structured API: {e}")
             raise

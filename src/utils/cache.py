@@ -97,3 +97,6 @@ class LLMCache:
             "cache_size": len(self.cache) if hasattr(self.cache, '__len__') else "unknown",
             "cache_directory": str(Config.CACHE_DIR)
         }
+
+    def clear(self):
+        self.cache.clear()
